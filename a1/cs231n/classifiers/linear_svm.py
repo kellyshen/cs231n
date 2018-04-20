@@ -35,10 +35,14 @@ def svm_loss_naive(W, X, y, reg):
       margin = scores[j] - correct_class_score + 1 # note delta = 1
       if margin > 0:
         loss += margin
+        dW[:, j] += X[i]
+        dW[:, y[i]] -= X[i]
 
   # Right now the loss is a sum over all training examples, but we want it
   # to be an average instead so we divide by num_train.
   loss /= num_train
+  dW /= num_train
+  dW += 2 * reg * W
 
   # Add regularization to the loss.
   loss += reg * np.sum(W * W)
@@ -51,8 +55,6 @@ def svm_loss_naive(W, X, y, reg):
   # loss is being computed. As a result you may need to modify some of the    #
   # code above to compute the gradient.                                       #
   #############################################################################
-
-
   return loss, dW
 
 
@@ -70,11 +72,20 @@ def svm_loss_vectorized(W, X, y, reg):
   # Implement a vectorized version of the structured SVM loss, storing the    #
   # result in loss.                                                           #
   #############################################################################
-  pass
+  
+  N, D = X.shape 
+  scores = X.dot(W)  # N * C
+  scores_true = scores[[i for i in range(N)], y] # N
+  margins = scores - scores_true.reshape(N, 1) + 1 # N * C
+  #print margins
+  margins[margins < 0] = 0
+  margins[[i for i in range(N)], y] = 0
+  #print margins
+  loss = np.sum(margins) / N + reg * np.sum(W * W)
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
-
 
   #############################################################################
   # TODO:                                                                     #
@@ -85,7 +96,17 @@ def svm_loss_vectorized(W, X, y, reg):
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
   #############################################################################
-  pass
+  
+  # X2 = np.array(X)
+  # X2[margins < 0] *= -1
+  # dim_sums = np.sum(X2, 0).reshape(D, 1) # D, 1
+  # dW += dim_sums
+
+  multipliers = np.ones(scores.shape) # N * C
+  multipliers[margins <= 0] = 0
+  num_pass = np.sum(multipliers, 1) # N, 
+  multipliers[[i for i in range(N)], y] -= num_pass
+  dW = X.T.dot(multipliers) / N + 2 * reg * W 
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################

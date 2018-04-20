@@ -3,6 +3,7 @@ from __future__ import print_function
 import numpy as np
 import matplotlib.pyplot as plt
 from past.builtins import xrange
+from softmax import softmax_loss_vectorized
 
 class TwoLayerNet(object):
   """
@@ -76,7 +77,18 @@ class TwoLayerNet(object):
     # Store the result in the scores variable, which should be an array of      #
     # shape (N, C).                                                             #
     #############################################################################
-    pass
+    # W1: First layer weights; has shape (D, H)
+    # b1: First layer biases; has shape (H,)
+    # W2: Second layer weights; has shape (H, C)
+    # b2: Second layer biases; has shape (C,)
+    # X: Input data of shape (N, D)
+    z1 = np.dot(X, W1) + b1#.reshape(1, len(b1)) # N * H
+    z1[z1<0] = 0.0 #relu
+    scores = np.dot(z1, W2) + b2#.reshape(1, len(b2)) # N * C
+    scores_max = np.max(scores, axis=1) # N, 
+    nums = np.exp(scores - scores_max.reshape(len(scores_max), 1)) # N * C 
+    denoms = np.sum(nums, axis=1) # N, 
+    softs = nums / denoms.reshape(len(denoms), 1) # N * C
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -85,15 +97,14 @@ class TwoLayerNet(object):
     if y is None:
       return scores
 
-    # Compute the loss
-    loss = None
     #############################################################################
     # TODO: Finish the forward pass, and compute the loss. This should include  #
     # both the data loss and L2 regularization for W1 and W2. Store the result  #
     # in the variable loss, which should be a scalar. Use the Softmax           #
     # classifier loss.                                                          #
     #############################################################################
-    pass
+    trues = softs[[i for i in range(len(X))], y]
+    loss = -1.0/len(X) * np.sum(np.log(trues)) + reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -105,7 +116,34 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    pass
+    
+    multipliers = np.zeros(scores.shape) # N * C
+    multipliers[[i for i in range(N)], y] = -1
+    #X2 = np.array(X)
+    #X2[np.dot(X, W1) + b1 < 0] = 0.0
+    # print('hi')
+    # temp = multipliers.dot(W2.T)
+    # # print(temp.shape)
+    # temp[z1 < 0] = 0
+    # temp2 = softs.dot(W2.T)
+    # temp2[z1 < 0] = 0
+    #print(np.dot(X.T, temp) + np.dot(X.T, temp2))
+    #grads['W1'] = (np.dot(X.T, temp) + np.dot(X.T, temp2))/ N + 2 * reg * W1
+    grads['W2'] = (z1.T.dot(multipliers) + z1.T.dot(softs))/ N + 2 * reg * W2
+    grads['b2'] = ((np.ones(z1.T.shape).dot(multipliers) + np.ones(z1.T.shape).dot(softs))/ N)[0]
+
+    multipliers_combined = np.array(softs)
+    multipliers_combined[[i for i in range(N)], y] -= 1
+    
+    temp = np.dot(multipliers_combined, W2.T)
+    temp[z1 <= 0] = 0
+    # print("****")
+    # print(np.dot(X.T, temp))
+    # zdfg
+    
+    grads['W1'] = np.dot(X.T, temp) / N + 2 * reg * W1
+    grads['b1'] = (np.dot(np.ones(X.T.shape), temp) / N)[0]
+
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -149,7 +187,9 @@ class TwoLayerNet(object):
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
-      pass
+      indices = np.random.choice(num_train, batch_size)#, replace=False)
+      X_batch = X[indices]
+      y_batch = y[indices]
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -164,7 +204,10 @@ class TwoLayerNet(object):
       # using stochastic gradient descent. You'll need to use the gradients   #
       # stored in the grads dictionary defined above.                         #
       #########################################################################
-      pass
+      self.params['W1'] -= learning_rate * grads['W1']
+      self.params['W2'] -= learning_rate * grads['W2']
+      self.params['b1'] -= learning_rate * grads['b1']
+      self.params['b2'] -= learning_rate * grads['b2']
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -209,7 +252,14 @@ class TwoLayerNet(object):
     ###########################################################################
     # TODO: Implement this function; it should be VERY simple!                #
     ###########################################################################
-    pass
+    W1, b1 = self.params['W1'], self.params['b1']
+    W2, b2 = self.params['W2'], self.params['b2']
+    N, D = X.shape
+    z1 = np.dot(X, W1) + b1#.reshape(1, len(b1)) # N * H
+    z1[z1<0] = 0.0 #relu
+    scores = np.dot(z1, W2) + b2#.reshape(1, len(b2)) # N * C
+
+    y_pred = np.argmax(scores, 1)
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
