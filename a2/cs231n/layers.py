@@ -498,13 +498,18 @@ def conv_forward_naive(x, w, b, conv_param):
     stride = conv_param['stride']
     #print('pad ', pad)
     #print('stride ', stride)
-    H2 = 1 + (H + 2 * pad - HH) / stride
-    W2 = 1 + (W + 2 * pad - WW) / stride
+    H2 = int(1 + (H + 2 * pad - HH) / stride)
+    W2 = int(1 + (W + 2 * pad - WW) / stride)
     x2 = np.pad(x, ((0, ), (0, ), (pad, ), (pad, )), 'constant')
     #print('x2.shape ', x2.shape)
     #print(x2)
 
-    out = np.zeros((N, F, H2, W2))
+    #print(type(N))
+    #print(type(F))
+    #print(type(H2))
+    #print(type(W2))
+    #print(H2)
+    out = np.zeros((N, F, int(H2), int(W2)))
 
     # why doesnt this work if dont index into i
     #print("out.shape ", out.shape)
@@ -596,8 +601,8 @@ def max_pool_forward_naive(x, pool_param):
     p_w = pool_param['pool_width']
     stride = pool_param['stride']
 
-    H2 = 1 + (H - p_h) / stride
-    W2 = 1 + (W - p_w) / stride
+    H2 = int(1 + (H - p_h) / stride)
+    W2 = int(1 + (W - p_w) / stride)
     out = np.zeros((N, C, H2, W2))
     ###########################################################################
     # TODO: Implement the max-pooling forward pass                            #
